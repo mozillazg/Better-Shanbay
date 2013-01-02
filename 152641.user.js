@@ -2,45 +2,32 @@
 // @name            Better Shanbay
 // @namespace       http://userscripts.org/scripts/show/152641
 // @description     Enhance shanbay.com
-// @version         0.2.1
+// @version         0.3.0
 // @author          mozillazg
 // @updateURL       https://userscripts.org/scripts/source/152641.meta.js
 // @downloadURL     https://userscripts.org/scripts/source/152641.user.js
-// @match           http://www.shanbay.com/forum/thread/*/*
-// @match           http://www.shanbay.com/forum/misc/new/
-// @match           http://www.shanbay.com/team/thread/*/*/*
+// @match           http://www.shanbay.com/forum/*
+// @match           http://www.shanbay.com/team/*
 // @run-at          document-end
 // ==/UserScript==
 
-function isValidTextarea(textarea) {
-  //var textarea = textarea;
-  if ((textarea.className == "markItUpEditor")
-      || (textarea.id == "id_body")){
-    return true;
-  }else {
-    return false;
-  }
-}
-
 // Ctrl + Enter
 function handleCtrlEnter() {
-  var forms = document.getElementsByTagName("form");
-  for (var i=0; i<forms.length; i++) {
-    var form = forms[i];
-    var textareas = form.getElementsByTagName("textarea");
-    if (textareas.length == 0) {
-      continue;
+  var textarea = document.getElementById("id_body");
+  var form = textarea.parentNode;
+  for (var i=0; i<100; i++){
+    if (form.nodeName == "FORM") {
+      break
+    }else {
+      form = form.parentNode;
     }
-    else if (!(isValidTextarea(textareas[0]))) {
-      continue;
-    }
+  }
+  if (form.nodeName == "FORM") {
     var inputs = form.getElementsByTagName("input");
     var submitButton = null;
-    var textarea = textareas[0];
     for (var i=0; i<inputs.length; i++) {
-      var input = inputs[i];
-      if (input.type == "submit") {
-        submitButton = input;
+      if (inputs[i].type == "submit") {
+        submitButton = inputs[i];
         break;
       }
     }
@@ -58,29 +45,26 @@ function handleCtrlEnter() {
 }
 
 
-//textareaValue = null;
-function markdownPreview(textarea) {
+textareaValue = null;
+function markdownPreview() {
   var converter = new Showdown.converter();
-  var textarea = textarea;
+  var textarea = document.getElementById("id_body");
   var value = textarea.value;
-  var form = textarea;
-  for (var i=0; i<20; i++) {
-    form = form.parentNode;
-    if (form.nodeName == "FORM") {
-      break;
-    }
+  var insertItBefore = document.getElementById("markItUpId_body");
+  if (!insertItBefore) {
+    return false;
   }
-
   var previewBody = document.getElementById("markdown-preview");
   if (!previewBody) {
     previewBody = document.createElement("div");
     previewBody.id = "markdown-preview";
-    form.parentNode.insertBefore(previewBody, form);
+    insertItBefore.parentNode.insertBefore(previewBody, insertItBefore);
   }
   if (!value) {
     previewBody.innerHTML = "";
-  }else{
-    value = "---\n" + value.replace(/\n(?!\n|=|-|\+\s|\*\s|-\s|\d+\s)/g, '\n\n');
+  }else if (textareaValue != value) {
+    textareaValue = value;
+    value = "---\n" + value.replace(/\n(?!\n|=|-|\+\s|\*\s|-\s|\d+\s)/mg, '\n\n');
     html = converter.makeHtml(value);
     previewBody.innerHTML = html;
   }
@@ -88,26 +72,24 @@ function markdownPreview(textarea) {
 
 
 function preview() {
-  var textareas = document.getElementsByTagName("textarea");
-  for (var i=0; i<textareas.length; i++) {
-    var textarea = textareas[i];
-    var uid;
-    if (!isValidTextarea(textarea)) {
-      continue;
-    }
-    textarea.onfocus = function() {
-      uid = setInterval(function() {
-        markdownPreview(textarea);
-      }, 1000);
-    };
-    textarea.onblur = function() {
-      clearInterval(uid);
-    };
-  }
+  var textarea = document.getElementById("id_body");
+  var uid;
+  textarea.onfocus = function() {
+    uid = setInterval(markdownPreview, 1000);
+  };
+  textarea.onblur = function() {
+    clearInterval(uid);
+    markdownPreview();
+  };
 }
 
 handleCtrlEnter();
 preview();
+//var menuPreview = GM_registerMenuCommand("Markdown Preview", preview);
+//var preview = GM_registerMenuCommand("Markdown Preview", handleCtrlEnter);
+//GM_enableMenuCommand(menuPreview);
+
+//})();
 
 
 
